@@ -41,7 +41,7 @@ cert, err = client.SimpleReenroll(csr, cert, priv)
 ```
 
 Authentication via previously obtained Certificate
-```
+```go
 keyFile, err1 := os.ReadFile("client_priv.pem")
 certFile, err2 := os.ReadFile("client_cert.pem")
 
