@@ -1,8 +1,5 @@
 package est
 
-import (
-)
-
 // Client represents and EST client.
 type Client struct {
     URLPrefix string
@@ -50,6 +47,28 @@ func (c *Client) SimpleEnroll(csr []byte) ([]byte, error) {
     return p, err
 }
 
+// SimpleEnroll issues an EST POST /simpleenroll request.
+// Takes a CSR in PEM format and returns the signed cert in PEM format.
+func (c *Client) SimpleEnroll9443(csr []byte, cert []byte, privKey []byte) ([]byte, error) {
+    url := c.URLPrefix + "/.well-known/est/simpleenroll"
+    headers := map[string]string{
+        "Content-Type": "application/pkcs10",
+    }
+
+    content, err := Post(url, csr, headers, "", "",
+        cert, privKey, c.ServerCert)
+    if err != nil {
+        return nil, err
+    }
+
+    p, err := PKCS7ToPEM(content)
+    if err != nil {
+        return nil, err
+    }
+
+    return p, err
+}
+
 // SimpleReenroll issues an EST POST /simplereenroll request.
 // Takes a CSR in PEM format and returns the signed cert in PEM format.
 // You can also pass a client cert/key for authentication.
@@ -73,3 +92,4 @@ func (c *Client) SimpleReenroll(csr []byte, clientCert []byte,
 
     return p, err
 }
+

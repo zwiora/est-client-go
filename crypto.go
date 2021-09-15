@@ -7,6 +7,7 @@ import (
     "crypto/x509"
     "crypto/x509/pkix"
     "encoding/pem"
+    "errors"
 
     "github.com/fullsailor/pkcs7"
 )
@@ -84,4 +85,55 @@ func CreateCsr(commonName string, country string, state string, city string,
     privPem := pem.EncodeToMemory(&block)
 
     return privPem, certPem, nil
+}
+
+func ParseRsaPrivateKeyFromPemStr(privPEM string) (*rsa.PrivateKey, error) {
+    block, _ := pem.Decode([]byte(privPEM))
+    if block == nil {
+        return nil, errors.New("failed to parse PEM block containing the key")
+    }
+
+    priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+    if err != nil {
+        return nil, err
+    }
+
+    return priv, nil
+}
+
+func CreateCsrFromKey(commonName string, country string, state string, city string,
+    organization string, organizationalUnit string,
+    emailAddress string, privKey string) ([]byte, error) {
+
+    priv, err := ParseRsaPrivateKeyFromPemStr(privKey)
+    if err != nil {
+        return nil, err
+    }
+
+    template := x509.CertificateRequest{
+        Subject: pkix.Name{
+            CommonName:         commonName,
+            Country:            []string{country},
+            Province:           []string{state},
+            Locality:           []string{city},
+            Organization:       []string{organization},
+            OrganizationalUnit: []string{organizationalUnit},
+        },
+        SignatureAlgorithm: x509.SHA256WithRSA,
+        EmailAddresses:     []string{emailAddress},
+    }
+
+    random := rand.Reader
+    csrBytes, err := x509.CreateCertificateRequest(random, &template, priv)
+    if err != nil {
+        return nil, err
+    }
+
+    block := pem.Block{
+        Type: "CERTIFICATE REQUEST",
+        Bytes: csrBytes,
+    }
+    certPem := pem.EncodeToMemory(&block)
+
+    return certPem, nil
 }
